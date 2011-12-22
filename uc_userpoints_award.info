@@ -1,4 +1,4 @@
-name = Userpoints Award
+name = Userpoints Award lite
 description = Interfaces userpoints with ubercart, so users can get points for purchases.
 package = Ubercart - Userpoints lite
 dependencies[] = userpoints
