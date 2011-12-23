@@ -1,0 +1,55 @@
+<?php
+
+/***
+ * Implements hook_uc_checkout_pane().
+ */
+function uc_userpoints_uc_checkout_pane(){
+  $panes['order_points'] = array(
+    'callback' => 'uc_checkout_pane_order_points',
+    'title' => t('Userpoints'),
+    'desc' => t("Display the contents of a customer's shopping cart."),
+    'weight' => 10,
+    'process' => FALSE,
+    'collapsible' => FALSE,
+  );
+
+  return $panes;
+}
+
+/***
+ * Displays the cart contents for review during checkout.
+ */
+function uc_checkout_pane_order_points($op, $order, $form = NULL, &$form_state = NULL) {
+
+  switch ($op) {
+    case 'view':
+
+      $total_points = userpoints_get_current_points($order->uid);
+      $points = $order->order_total;
+
+      /*$contents['cart_userpoints_total'] = array(
+        '#type' => 'item',
+        '#markup' =>t("<strong>Total accumulated point</strong> : @points", array('@points' => $total_points)),
+      );*/
+      $contents['cart_userpoints_order'] = array(
+        '#type' => 'item',
+        '#markup' => t("<strong>Points for this purchase</strong> : @points", array('@points' => $points)),
+      );
+      return array('contents' => $contents);
+
+    case 'review':
+      $price = $order->order_total;
+      $quote = (float)$order->quote['rate'];
+      $points = (!empty($quote)) ? $price - $quote : $price;
+      $review[] = array('title' => t('Userpoints'), 'data' => check_plain($points));
+      return $review;
+  }
+}
+/***
+ * Retrive the total amount on product purchase only for an order
+ */
+function uc_userpoints_get_order_total($order){
+  $result 	= db_query("SELECT SUM(qty * price) FROM {uc_order_products} p, {uc_orders} o WHERE p.order_id = o.order_id and o.order_id = :oid and o.uid = :uid", array(':oid' => $order->order_id, 'uid' => $order->uid));
+  $total		= $result->fetchField();
+  return (isset($total) ? $total : 0);
+}

@@ -1,0 +1,10 @@
+name = Userpoints lite
+description = Interfaces userpoints with ubercart, so users can get points for purchases.
+package = Ubercart - Userpoints Lite
+dependencies[] = userpoints
+dependencies[] = uc_order
+dependencies[] = uc_cart
+dependencies[] = uc_payment
+core = 7.x
+php = 5.x
+
