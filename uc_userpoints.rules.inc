@@ -9,17 +9,16 @@
  */
 function uc_userpoints_rules_action_info(){
 
-  $order_arg = array(
-    'type' => 'uc_order',
-    'label' => t('Order'),
-  );
-
   $actions['uc_userpoints_assign_points'] = array(
     'label' => t('Award points upon payment completion'),
     'group' => t('Userpoints'),
-    'base' => 'uc_userpoints_assign_points',
+    //'base' => 'uc_stock_notify_action_email',
+    //'base' => 'uc_userpoints_assign_points',
     'parameter' => array(
-      'order' => $order_arg,
+        'order' => array(
+          'type' => 'uc_order',
+          'label' => t('Order'),
+        ),
     ),
   );
 
@@ -34,7 +33,7 @@ function uc_userpoints_assign_points($order){
 
   // gives the user points for thier purchase, but checks via sql if they paid with points.  if so they get nothing also dont give points for tax and shipping.
 
-  global $user;
+  //global $user;
 
   //$multiplier 	= variable_get(USERPOINTS_UC_EARN, 0);
   //$min 			= variable_get(USERPOINTS_MIN_PURCHASE, '0.00');

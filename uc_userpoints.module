@@ -1,5 +1,34 @@
 <?php
 
+ /***
+ * Implements hook_modules_disabled().
+ */
+function uc_userpoints_modules_disabled($modules){
+  $rules_config = rules_config_load('uc_userpoints_assign_points_payment_entered');
+  //if (!$rules_config->hasStatus(ENTITY_OVERRIDDEN)) {
+ 	  // If the rule wasn't overridden it's safe to delete it so it get
+ 	  // recreated when the payment module is re-enabled.
+ 	  $rules_config->delete();
+ 	/*}
+ 	else {
+ 	  // Otherwise, just disable and save it.
+    $rules_config->module = 'rules';
+ 	  $rules_config->active = FALSE;
+ 	  $rules_config->save();
+ 	}*/
+}
+
+ /***
+ * Implements hook_modules_enabled().
+ */
+function uc_userpoints_modules_enabled($modules){
+  $rules_config = rules_config_load('uc_userpoints_assign_points_payment_entered');
+  if($rules_config->hasStatus(ENTITY_OVERRIDDEN)){
+    $rules_config->module = 'uc_userpoints';
+    $rules_config->active = TRUE;
+    $rules_config->save();
+  }
+}
 /***
  * Implements hook_uc_checkout_pane().
  */
@@ -20,33 +49,61 @@ function uc_userpoints_uc_checkout_pane(){
  * Displays the cart contents for review during checkout.
  */
 function uc_checkout_pane_order_points($op, $order, $form = NULL, &$form_state = NULL) {
-
+  
+  $options = userpoints_translation();
+  $prev_points = userpoints_get_current_points($order->uid);
+  $curr_points = $order->order_total;
+  
   switch ($op) {
     case 'view':
-
-      $total_points = userpoints_get_current_points($order->uid);
-      $points = $order->order_total;
-
-      /*$contents['cart_userpoints_total'] = array(
+      $options['@prev_points'] = $prev_points;
+      $options['@curr_points'] = $curr_points;
+      $options['@total_points'] = $prev_points + $curr_points;
+      
+      $contents['cart_userpoints_prev'] = array(
         '#type' => 'item',
-        '#markup' =>t("<strong>Total accumulated point</strong> : @points", array('@points' => $total_points)),
-      );*/
+        '#markup' => t("<strong>Accumulated !points</strong> : @prev_points", $options),
+      );
+      
       $contents['cart_userpoints_order'] = array(
         '#type' => 'item',
-        '#markup' => t("<strong>Points for this purchase</strong> : @points", array('@points' => $points)),
+        '#markup' => t("<strong>!Points for this purchase</strong> : @curr_points", $options),
+      );
+      
+      $contents['cart_userpoints_total'] = array(
+        '#type' => 'item',
+        '#markup' => t("<strong>Total accumulated !points</strong> : @total_points", $options),
       );
       return array('contents' => $contents);
 
     case 'review':
-      $price = $order->order_total;
+
       $quote = (float)$order->quote['rate'];
-      $points = (!empty($quote)) ? $price - $quote : $price;
-      $review[] = array('title' => t('Userpoints'), 'data' => check_plain($points));
+      // Minus the shipping quote rate from the order's total
+      $curr_points = (!empty($quote)) ? $curr_points - $quote : $curr_points;
+      $total_points = $prev_points + $curr_points;
+
+      $review = array(
+        '0' => array(
+        	'title' => t('Accumulated !points', $options), 
+        	'data' => check_plain($prev_points)),
+        '1' => array(
+        	'title' => t('!Points for this purchase', $options), 
+        	'data' => check_plain($curr_points)),
+        '2' => array(
+        	'title' => t('Total accumulated !points', $options), 
+        	'data' => check_plain($total_points)),
+      );
+      
+      /*$review[] = array('title' => t('Accumulated !points'), 'data' => check_plain($prev_points));
+      $review[] = array('title' => t('!Points for this purchase'), 'data' => check_plain($curr_points));
+      $review[] = array('title' => t('Total accumulated !points'), 'data' => check_plain($total_points));*/
       return $review;
   }
 }
 /***
- * Retrive the total amount on product purchase only for an order
+ * Retrive the total amount on product purchase only for a completed order
+ * $order
  */
 function uc_userpoints_get_order_total($order){
   $result 	= db_query("SELECT SUM(qty * price) FROM {uc_order_products} p, {uc_orders} o WHERE p.order_id = o.order_id and o.order_id = :oid and o.uid = :uid", array(':oid' => $order->order_id, 'uid' => $order->uid));
