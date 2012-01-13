@@ -52,7 +52,7 @@ function uc_checkout_pane_order_points($op, $order, $form = NULL, &$form_state =
   
   $options = userpoints_translation();
   $prev_points = userpoints_get_current_points($order->uid);
-  $curr_points = $order->order_total;
+  $curr_points = round($order->order_total);
   
   switch ($op) {
     case 'view':
@@ -86,13 +86,16 @@ function uc_checkout_pane_order_points($op, $order, $form = NULL, &$form_state =
       $review = array(
         '0' => array(
         	'title' => t('Accumulated !points', $options), 
-        	'data' => check_plain($prev_points)),
+        	'data' => check_plain(round($prev_points))
+        ),
         '1' => array(
         	'title' => t('!Points for this purchase', $options), 
-        	'data' => check_plain($curr_points)),
+        	'data' => check_plain(round($curr_points))
+        ),
         '2' => array(
         	'title' => t('Total accumulated !points', $options), 
-        	'data' => check_plain($total_points)),
+        	'data' => check_plain(round($total_points))
+        ),
       );
       
       /*$review[] = array('title' => t('Accumulated !points'), 'data' => check_plain($prev_points));
@@ -107,6 +110,6 @@ function uc_checkout_pane_order_points($op, $order, $form = NULL, &$form_state =
  */
 function uc_userpoints_get_order_total($order){
   $result 	= db_query("SELECT SUM(qty * price) FROM {uc_order_products} p, {uc_orders} o WHERE p.order_id = o.order_id and o.order_id = :oid and o.uid = :uid", array(':oid' => $order->order_id, 'uid' => $order->uid));
-  $total		= $result->fetchField();
+  $total		= round($result->fetchField());
   return (isset($total) ? $total : 0);
 }
