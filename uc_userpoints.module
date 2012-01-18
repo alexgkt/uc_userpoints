@@ -98,9 +98,6 @@ function uc_checkout_pane_order_points($op, $order, $form = NULL, &$form_state =
         ),
       );
       
-      /*$review[] = array('title' => t('Accumulated !points'), 'data' => check_plain($prev_points));
-      $review[] = array('title' => t('!Points for this purchase'), 'data' => check_plain($curr_points));
-      $review[] = array('title' => t('Total accumulated !points'), 'data' => check_plain($total_points));*/
       return $review;
   }
 }
