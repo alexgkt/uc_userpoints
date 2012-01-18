@@ -1,0 +1,58 @@
+<?php
+
+/*
+* Implementation of hook_uc_line_item
+*/
+function uc_userpoints_discount_uc_line_item() {
+  $items[] = array(
+    'id' => 'uc_userpoints_discount_userpoints_calculated',
+    'title' => t('Userpoints Discount'),
+    'weight' => 2,
+    //'default' => FALSE,
+    'stored' => FALSE,
+    //'add_list' => TRUE,
+    'calculated' => TRUE,
+    'callback' => 'uc_userpoints_discount_line_item_userpoints_calculated',
+  );
+
+  return $items;
+}
+
+/*
+* Callback registered in uc_userpoints_discount_line_item for id == 'uc_userpoints_discount_userpoints_calculated'
+*/
+function uc_userpoints_discount_line_item_userpoints_calculated($op, $arg1) {
+  switch ($op) {
+    case 'load':
+      $lines = array();
+      $discount = _uc_userpoints_discount_calc_discount($arg1); 
+      if ($discount) {
+        $lines[] = array(
+          'id' => 'uc_userpoints_discount_userpoints_calculated',
+          'title' => $discount['title'],
+          'amount' => $discount['amount'],
+        );
+      }
+      return $lines;
+      break;
+  }
+}
+
+/*
+ * Helper function to calculate discount amount
+ */
+function _uc_userpoints_discount_calc_discount($order){
+  $points = userpoints_get_current_points($order->uid);
+  $discount = array();
+  if(!empty($points)){
+    if($points >= 200 && $points < 500){
+      $discount['title'] = t('2% Discount');
+      $discount['amount'] = - $order->order_total * 0.02;
+    }
+    if($points >= 500 && $points < 1000){
+      $discount['title'] = t('5% Discount');
+      $discount['amount'] = - $order->order_total * 0.05;
+    }
+  }
+  return $discount;
+}

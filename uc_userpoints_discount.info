@@ -1,0 +1,7 @@
+name = UC Userpoints Discount
+description = Create discounts based on a user's accumulated points.
+package = Ubercart - Userpoints Lite
+dependencies[] = uc_userpoints
+core = 7.x
+php = 5.x
+
