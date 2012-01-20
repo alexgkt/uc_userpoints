@@ -51,5 +51,8 @@ function uc_userpoints_assign_points($order){
 			'description' => 'User made a purchase, awarding points (Ubercart Order ID ' . $order->order_id . ')',
 		);
 		$st = userpoints_userpointsapi($params);
+		if (module_exists('uc_userpoints_discount')) {
+		  uc_userpoints_discount_set_rank($order->uid);
+		}
 	}
 }
