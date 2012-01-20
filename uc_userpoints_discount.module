@@ -1,5 +1,66 @@
 <?php
 
+/**
+ * Implements hook_menu().
+ */
+function uc_userpoints_discount_menu() {
+  $items = array();
+
+  $items['admin/config/people/userpoints/discount'] = array(
+    'title' => 'Discount',
+    'page callback' => 'uc_userpoints_discount_admin_discount',
+    'access callback' => 'userpoints_admin_access',
+    'access arguments' => array('list'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 2,
+    'file' => 'uc_userpoints_discount.admin.inc',
+  );
+  
+  $items['admin/config/people/userpoints/discount/add'] = array(
+    'title' => 'Add discount criteria',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_userpoints_discount_admin_discount_form'),
+    'access callback' => 'userpoints_admin_access',
+    'access arguments' => array('add'),
+  	'type' => MENU_LOCAL_ACTION,
+    'file' => 'uc_userpoints_discount.admin.inc',
+  );
+
+  $items['admin/config/people/userpoints/discount/%/edit'] = array(
+    'title' => 'Edit Discount Criteria',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_userpoints_discount_admin_discount_form', 5),
+    'access callback' => 'userpoints_admin_access',
+    'access arguments' => array('edit'),
+    'file' => 'uc_userpoints_discount.admin.inc',
+  );
+  
+  $items['admin/config/people/userpoints/discount/%/delete'] = array(
+    'title' => 'Delete Discount Criteria',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_userpoints_discount_admin_discount_delete_form', 5),
+    'access callback' => 'userpoints_admin_access',
+    'access arguments' => array('administer'),
+    'file' => 'uc_userpoints_discount.admin.inc',
+  );
+  
+  return $items;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function uc_userpoints_discount_form_alter(&$form, $form_state, $form_id) {
+  if($form_id == 'userpoints_admin_txn'){
+    $form['#submit'][] = 'uc_userpoints_discount_userpoints_txn_submit';
+  }
+}
+
+function uc_userpoints_discount_userpoints_txn_submit($form, &$form_state){
+  $uid = ($form_state['values']['mode'] == 'add') ? $form_state['values']['txn_user']->uid : $uid = $form_state['values']['txn']->uid;
+  uc_userpoints_discount_set_rank($uid);
+}
+
 /*
 * Implementation of hook_uc_line_item
 */
@@ -25,12 +86,12 @@ function uc_userpoints_discount_line_item_userpoints_calculated($op, $arg1) {
   switch ($op) {
     case 'load':
       $lines = array();
-      $discount = _uc_userpoints_discount_calc_discount($arg1); 
+      $discount = uc_userpoints_discount_calc_discount($arg1); 
       if ($discount) {
         $lines[] = array(
           'id' => 'uc_userpoints_discount_userpoints_calculated',
-          'title' => $discount['title'],
-          'amount' => $discount['amount'],
+          'title' => $discount->title,
+          'amount' => $discount->amount,
         );
       }
       return $lines;
@@ -41,18 +102,56 @@ function uc_userpoints_discount_line_item_userpoints_calculated($op, $arg1) {
 /*
  * Helper function to calculate discount amount
  */
-function _uc_userpoints_discount_calc_discount($order){
-  $points = userpoints_get_current_points($order->uid);
-  $discount = array();
-  if(!empty($points)){
-    if($points >= 200 && $points < 500){
-      $discount['title'] = t('2% Discount');
-      $discount['amount'] = - $order->order_total * 0.02;
-    }
-    if($points >= 500 && $points < 1000){
-      $discount['title'] = t('5% Discount');
-      $discount['amount'] = - $order->order_total * 0.05;
-    }
+function uc_userpoints_discount_calc_discount($order){
+  
+  $query = db_select('uc_userpoints_discount','d');
+  $query->join('uc_userpoints_user_rank','r','r.id = d.id');
+  $query->fields('d', array('rank','discount'))
+        ->condition('r.uid', $order->uid, '=');
+  $discount = $query->execute()->fetchObject();
+
+  if ($discount){
+    $discount->title = t('!rank Discount',array('!rank' => $discount->rank));
+    unset($discount->rank);
+    $discount->amount = -($discount->discount > 1 ? $discount->discount : $discount->discount * 100);
+    unset($discount->discount);
   }
+  
   return $discount;
 }
+
+function uc_userpoints_discount_get_rank($uid){
+  return db_query("SELECT * FROM {uc_userpoints_user_rank} WHERE uid = :uid", array(':uid' => $uid))->fetchObject();
+}
+
+function uc_userpoints_discount_set_rank($uid){
+  $points = userpoints_get_current_points($uid);
+  $curr_rank = uc_userpoints_discount_get_rank($uid);
+  $new_rank = db_query("SELECT id, rank FROM {uc_userpoints_discount} WHERE points <= :points ORDER BY points DESC", array(':points' => $points))->fetchObject();
+
+  if ($new_rank){
+    $new_rank->uid = $uid;
+  }
+  else {
+    $new_rank = (object) array(
+      'uid' => $uid,
+    	'id' => '',
+      'rank' => '',
+    );
+  }
+  
+  if ($curr_rank){
+    drupal_write_record('uc_userpoints_user_rank' , $new_rank, 'uid');
+  }
+  else {
+    drupal_write_record('uc_userpoints_user_rank' , $new_rank);
+  }
+  
+  if ($curr_rank->rank != $new_rank->rank && $new_rank->rank != ''){
+    drupal_set_message(t('Your rank have been upgraded to %rank',array('%rank' => $new_rank->rank)));
+  }
+}
+
+function _get_discount_type($discount){
+  return ($discount > 1) ? variable_get('uc_currency_sign', 'RM') . $discount : $discount * 100 . '%';
+} 
