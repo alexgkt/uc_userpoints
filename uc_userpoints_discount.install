@@ -1,0 +1,76 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the uc_poslaju module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function uc_userpoints_discount_schema() {
+  $schema = array();
+
+  $schema['uc_userpoints_discount'] = array(
+    'description' => 'Stores the state and shipping cost information. Default weight is gram.',
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'rank' => array(
+        'description' => 'Name of the rank.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'points' => array(
+        'description' => 'Points needed to reach this rank.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'discount' => array(
+        'description' => 'Entitled discount for this rank.',
+        'type' => 'numeric',
+        'precision' => 16,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0.00,
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+  
+  $schema['uc_userpoints_user_rank'] = array(
+    'description' => 'Stores the state and shipping cost information. Default weight is gram.',
+    'fields' => array(
+  		'uid' => array(
+        'description' => 'User ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'id' => array(
+        'description' => 'Rank ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'rank' => array(
+        'description' => 'User\'s Rank',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('uid'),
+  );
+  
+  return $schema;
+}
